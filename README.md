@@ -1,70 +1,158 @@
-# Getting Started with Create React App
+# Splitwise Clone - Mobile App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based Splitwise clone with mobile-first design for expense tracking and splitting among groups.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+✅ **User Management** - Add and manage users
+✅ **Group Creation** - Create groups with selected users  
+✅ **Expense Tracking** - Add expenses with detailed sharing options
+✅ **Balance Calculation** - Automatic balance calculations showing who owes what
+✅ **Transaction History** - Date-wise expense organization
+✅ **Individual Spending Analysis** - Detailed breakdown of spending per person
+✅ **Mobile-First Design** - Optimized for mobile devices
+✅ **Local Storage** - Data persistence using localStorage
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+src/
+├── App.js                    # Main application component
+├── index.css                 # Tailwind CSS imports and custom styles
+├── components/
+│   ├── Sidebar.js           # Navigation sidebar
+│   ├── UsersView.js         # User management interface
+│   ├── GroupsView.js        # Group management interface
+│   └── GroupDetailView.js   # Individual group details and expense management
+└── utils/
+    └── storage.js           # localStorage utility functions
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Setup Instructions
 
-### `npm test`
+### 1. Create React App
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+npx create-react-app splitwise-clone
+cd splitwise-clone
+```
 
-### `npm run build`
+### 2. Install Dependencies
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install lucide-react
+npm install -D tailwindcss postcss autoprefixer
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 3. Initialize Tailwind CSS
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npx tailwindcss init -p
+```
 
-### `npm run eject`
+### 4. Copy Files
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Replace `src/App.js` with the App component code
+- Replace `src/index.css` with the CSS file content
+- Create `src/components/` folder and add all component files
+- Create `src/utils/` folder and add `storage.js`
+- Replace `tailwind.config.js` with the provided config
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 5. Update package.json
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Replace your `package.json` dependencies section with the provided one.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 6. Start Development Server
 
-## Learn More
+```bash
+npm start
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Usage
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Adding Users
 
-### Code Splitting
+1. Click the Users icon in the sidebar
+2. Click the + button to add a new user
+3. Enter name (required) and email (optional)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Creating Groups
 
-### Analyzing the Bundle Size
+1. Click the Groups icon in the sidebar
+2. Click the + button to create a new group
+3. Enter group name and select members
+4. At least one member is required
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Adding Expenses
 
-### Making a Progressive Web App
+1. Click on a group to enter group details
+2. Click the + button in the group header
+3. Fill in expense details:
+   - Description (required)
+   - Amount (required)
+   - Date
+   - Who paid (required)
+   - Who shared the expense (required)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Viewing Reports
 
-### Advanced Configuration
+Use the tabs in group detail view:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- **Transactions**: View all expenses by date
+- **Total**: See total group spending
+- **Balances**: Check who owes money and who should receive money
+- **Export**: Future feature for data export
 
-### Deployment
+## Key Components Explained
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### App.js
 
-### `npm run build` fails to minify
+- Main application state management
+- Handles data persistence with localStorage
+- Manages navigation between views
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Storage Utils
+
+- `saveToStorage()`: Save data to localStorage with error handling
+- `loadFromStorage()`: Load data from localStorage with error handling
+- `removeFromStorage()`: Remove specific keys
+- `clearAllStorage()`: Clear all stored data
+
+### Balance Calculation Logic
+
+When an expense is added:
+
+1. Person who paid gets credited with the full amount
+2. All people sharing the expense get debited with their share
+3. Final balance = Total paid - Total share
+
+### State Management
+
+- Users and groups are stored in React state
+- Changes automatically sync to localStorage
+- Data persists between browser sessions
+
+## Future Enhancements
+
+- [ ] Excel/CSV export functionality
+- [ ] Edit/delete expenses
+- [ ] User avatars
+- [ ] Currency selection
+- [ ] Settlement suggestions
+- [ ] Expense categories
+- [ ] Receipt image upload
+- [ ] Push notifications
+
+## Technologies Used
+
+- React 18
+- Tailwind CSS
+- Lucide React (icons)
+- localStorage API
+
+## Browser Support
+
+- Chrome 60+
+- Firefox 60+
+- Safari 12+
+- Edge 79+
