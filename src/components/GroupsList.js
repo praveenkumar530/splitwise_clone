@@ -35,7 +35,7 @@ const GroupsList = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <Title level={2}>Your Groups</Title>
+        <span className="text-md md:text-xl">Your Groups</span>
         <Button
           type="primary"
           icon={<PlusOutlined />}

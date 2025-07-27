@@ -20,21 +20,25 @@ const ExportTab = () => {
     // Calculate balances
     const balances = {};
     selectedGroup?.members?.forEach((member) => {
-      balances[member.user_id] = { paid: 0, owes: 0, balance: 0 };
+      balances[member.user_id] = {
+        paid: 0,
+        owes: 0,
+        balance: 0,
+        name: member?.name,
+      };
     });
 
     expenses.forEach((expense) => {
       if (!expense.amount || !expense.paidBy || !expense.sharedBy) return;
 
       const shareAmount = expense.amount / expense.sharedBy.length;
-      const paidAmount = expense.amount / expense.paidBy.length;
 
-      expense.paidBy.forEach((payer) => {
-        if (balances[payer]) {
-          balances[payer].paid += paidAmount;
-        }
-      });
+      // Add to paid amount for the single payer
+      if (balances[expense.paidBy]) {
+        balances[expense.paidBy].paid += expense.amount;
+      }
 
+      // Add to owes amount for sharers
       expense.sharedBy.forEach((sharer) => {
         if (balances[sharer]) {
           balances[sharer].owes += shareAmount;
@@ -53,25 +57,50 @@ const ExportTab = () => {
         totalExpenses: expenses.length,
         totalAmount: expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0),
       },
-      expenses: expenses.map((exp) => ({
-        date: exp.createdAt
-          ? (exp.createdAt.toDate
-              ? exp.createdAt.toDate()
-              : new Date(exp.createdAt)
-            ).toLocaleDateString()
-          : "N/A",
-        description: exp.description || "N/A",
-        amount: exp.amount || 0,
-        paidBy: exp.paidBy ? exp.paidBy.join(", ") : "N/A",
-        sharedBy: exp.sharedBy ? exp.sharedBy.join(", ") : "N/A",
-      })),
-      balances: Object.entries(balances).map(([person, balance]) => ({
-        person: person.split("@")[0],
-        email: person,
-        paid: balance.paid,
-        owes: balance.owes,
-        balance: balance.balance,
-      })),
+      expenses: expenses.map((exp) => {
+        // Find the payer's name
+        const payer = selectedGroup?.members?.find(
+          (member) => member.user_id === exp.paidBy
+        );
+        const payerName = payer?.name || exp.paidBy?.split("@")[0] || "Unknown";
+
+        // Find the sharers' names
+        const sharerNames = exp.sharedBy
+          ? exp.sharedBy
+              .map((sharerId) => {
+                const sharer = selectedGroup?.members?.find(
+                  (member) => member.user_id === sharerId
+                );
+                return sharer?.name || sharerId?.split("@")[0] || "Unknown";
+              })
+              .join(", ")
+          : "N/A";
+
+        return {
+          date: exp.createdAt
+            ? (exp.createdAt.toDate
+                ? exp.createdAt.toDate()
+                : new Date(exp.createdAt)
+              ).toLocaleDateString()
+            : "N/A",
+          description: exp.description || "N/A",
+          amount: exp.amount || 0,
+          paidBy: payerName,
+          sharedBy: sharerNames,
+        };
+      }),
+      balances: Object.entries(balances).map(([person, balance]) => {
+        const member = selectedGroup?.members?.find(
+          (m) => m.user_id === person
+        );
+        return {
+          person: member?.name || person.split("@")[0] || "Unknown",
+          email: person,
+          paid: balance.paid,
+          owes: balance.owes,
+          balance: balance.balance,
+        };
+      }),
     };
   };
 
@@ -87,9 +116,7 @@ const ExportTab = () => {
       csvContent += `Group Name,${data.groupInfo.name}\n`;
       csvContent += `Total Members,${data.groupInfo.members.length}\n`;
       csvContent += `Total Expenses,${data.groupInfo.totalExpenses}\n`;
-      csvContent += `Total Amount,₹${data.groupInfo.totalAmount.toFixed(
-        2
-      )}\n\n`;
+      csvContent += `Total Amount,${data.groupInfo.totalAmount.toFixed(2)}\n\n`;
 
       // Expenses
       csvContent += "EXPENSES\n";
@@ -97,7 +124,7 @@ const ExportTab = () => {
       data.expenses.forEach((expense) => {
         csvContent += `${expense.date},"${
           expense.description
-        }",₹${expense.amount.toFixed(2)},"${expense.paidBy}","${
+        }",${expense.amount.toFixed(2)},"${expense.paidBy}","${
           expense.sharedBy
         }"\n`;
       });
@@ -109,9 +136,9 @@ const ExportTab = () => {
       data.balances.forEach((balance) => {
         csvContent += `${balance.person},${
           balance.email
-        },₹${balance.paid.toFixed(2)},₹${balance.owes.toFixed(
+        },${balance.paid.toFixed(2)},${balance.owes.toFixed(
           2
-        )},₹${balance.balance.toFixed(2)}\n`;
+        )},${balance.balance.toFixed(2)}\n`;
       });
 
       // Create and download file
@@ -135,15 +162,11 @@ const ExportTab = () => {
     }
   };
 
-  const handleExportToPDF = () => {
-    message.info("PDF export feature will be implemented soon!");
-  };
-
   const handleShareSummary = () => {
     const data = prepareExportData();
 
     let summary = `📊 ${data.groupInfo.name} - Expense Summary\n\n`;
-    summary += `💰 Total Spent: ₹${data.groupInfo.totalAmount.toFixed(2)}\n`;
+    summary += `💰 Total Spent: ${data.groupInfo.totalAmount.toFixed(2)}\n`;
     summary += `📝 Total Expenses: ${data.groupInfo.totalExpenses}\n`;
     summary += `👥 Members: ${data.groupInfo.members.length}\n\n`;
 
@@ -151,7 +174,7 @@ const ExportTab = () => {
     data.balances.forEach((balance) => {
       if (Math.abs(balance.balance) > 0.01) {
         const status = balance.balance > 0 ? "gets back" : "owes";
-        summary += `• ${balance.person} ${status} ₹${Math.abs(
+        summary += `• ${balance.person} ${status} ${Math.abs(
           balance.balance
         ).toFixed(2)}\n`;
       } else {
@@ -212,30 +235,6 @@ const ExportTab = () => {
               disabled={expenses.length === 0}
             >
               Download CSV
-            </Button>
-          </div>
-        </Card>
-
-        {/* Export to PDF */}
-        <Card>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <FilePdfOutlined className="text-2xl text-red-600" />
-              <div>
-                <Title level={5} className="mb-1">
-                  Export to PDF
-                </Title>
-                <Text type="secondary" className="text-sm">
-                  Generate a formatted PDF report (Coming Soon)
-                </Text>
-              </div>
-            </div>
-            <Button
-              icon={<ExportOutlined />}
-              onClick={handleExportToPDF}
-              disabled
-            >
-              Download PDF
             </Button>
           </div>
         </Card>

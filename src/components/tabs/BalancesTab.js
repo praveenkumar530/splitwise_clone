@@ -1,7 +1,12 @@
 // components/tabs/BalancesTab.js
 import React from "react";
 import { Card, Typography, Tag, Space, Empty, Divider, Spin } from "antd";
-import { CalculatorOutlined, SwapOutlined } from "@ant-design/icons";
+import {
+  CalculatorOutlined,
+  SwapOutlined,
+  RightOutlined,
+  ArrowRightOutlined,
+} from "@ant-design/icons";
 import { useAppContext } from "../../contexts/AppContext";
 import { useExpenses } from "../../hooks/useFirestore";
 
@@ -122,105 +127,110 @@ const BalancesTab = () => {
   };
 
   const settlements = simplifyDebts();
-
   return (
     <div className="space-y-6">
       {/* Individual Balances */}
-      <Card title="Individual Balances">
-        <div className="space-y-4">
-          {Object.entries(balances)
-            .sort(([, a], [, b]) => b.balance - a.balance)
-            .map(([person, balance]) => (
-              <div
-                key={person}
-                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-lg"
-              >
-                <div className="flex-1">
-                  <Text strong className="text-base">
-                    {balance.name}
-                  </Text>
-                  <div className="text-sm text-gray-500 mt-1">
-                    <Space split={<span>|</span>}>
-                      <span>Paid: ₹{balance.paid.toFixed(2)}</span>
-                      <span>Owes: ₹{balance.owes.toFixed(2)}</span>
-                    </Space>
-                  </div>
-                </div>
-                <div className="mt-2 sm:mt-0">
-                  <Tag
-                    color={
-                      balance.balance >= 0.01
-                        ? "green"
-                        : balance.balance <= -0.01
-                        ? "red"
-                        : "default"
-                    }
-                    className="text-sm font-medium"
-                  >
-                    {balance.balance >= 0.01
-                      ? "Gets back"
-                      : balance.balance <= -0.01
-                      ? "Owes"
-                      : "Settled"}
-                    {Math.abs(balance.balance) > 0.01 &&
-                      ` ₹${Math.abs(balance.balance).toFixed(2)}`}
-                  </Tag>
+      <div className="text-center font-bold"> Individual Balances</div>
+      <div className="space-y-4">
+        {Object.entries(balances)
+          .sort(([, a], [, b]) => b.balance - a.balance)
+          .map(([person, balance]) => (
+            <div
+              key={person}
+              className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-gray-100 rounded-lg"
+            >
+              <div className="flex-1">
+                <Text strong className="text-base">
+                  {balance.name}
+                </Text>
+                <div className="text-sm text-gray-500 mt-1">
+                  <Space split={<span>|</span>}>
+                    <span>Paid: ₹{balance.paid.toFixed(2)}</span>
+                    <span>Owes: ₹{balance.owes.toFixed(2)}</span>
+                  </Space>
                 </div>
               </div>
-            ))}
-        </div>
-      </Card>
+              <div className="mt-2 sm:mt-0">
+                <Tag
+                  color={
+                    balance.balance >= 0.01
+                      ? "green"
+                      : balance.balance <= -0.01
+                      ? "red"
+                      : "default"
+                  }
+                  className="text-sm font-medium"
+                >
+                  {balance.balance >= 0.01
+                    ? "Gets back"
+                    : balance.balance <= -0.01
+                    ? "Owes"
+                    : "Settled"}
+                  {Math.abs(balance.balance) > 0.01 &&
+                    ` ₹${Math.abs(balance.balance).toFixed(2)}`}
+                </Tag>
+              </div>
+            </div>
+          ))}
+      </div>
 
       {/* Debt Simplification */}
-      <Card
+      {/* <Card
         title={
           <div className="flex items-center">
             <CalculatorOutlined className="mr-2" />
             Simplified Settlements
           </div>
         }
-      >
-        {settlements.length === 0 ? (
-          <div className="text-center py-8">
-            <Title level={4} className="text-green-600">
-              🎉 All settled up!
-            </Title>
-            <Text type="secondary">Everyone's expenses are balanced</Text>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {settlements.map((settlement, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <Text strong>
-                    {settlement.fromName || settlement.from.split("@")[0]}
-                  </Text>
-                  <SwapOutlined className="text-blue-500" />
-                  <Text strong>
-                    {settlement.toName || settlement.to.split("@")[0]}
-                  </Text>
-                </div>
-                <Tag color="blue" className="text-base font-medium">
-                  ₹{settlement.amount.toFixed(2)}
-                </Tag>
+      > */}
+      <div className="flex items-center justify-center font-bold">
+        <CalculatorOutlined className="mr-2" />
+        Simplified Settlements
+      </div>
+      {settlements.length === 0 ? (
+        <div className="text-center py-8">
+          <Title level={4} className="text-green-600">
+            🎉 All settled up!
+          </Title>
+          <Text type="secondary">Everyone's expenses are balanced</Text>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {settlements.map((settlement, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="font-bold text-[10px] md:text-lg">
+                  {settlement.fromName || settlement.from.split("@")[0]}
+                </span>
+                <ArrowRightOutlined className="text-blue-500" />
+                <span className="font-bold text-[10px] md:text-lg">
+                  {settlement.toName || settlement.to.split("@")[0]}
+                </span>
               </div>
-            ))}
-
-            <Divider />
-
-            <div className="text-center">
-              <Text type="secondary" className="text-sm">
-                With these {settlements.length} transaction
-                {settlements.length !== 1 ? "s" : ""}, everyone will be settled
-                up!
-              </Text>
+              <Tag
+                color="blue"
+                className="text-[11px] md:text-base font-medium  "
+              >
+                ₹{settlement.amount.toFixed(2)}
+              </Tag>
             </div>
+          ))}
+
+          <Divider />
+
+          <div className="text-center">
+            <Text type="secondary" className="text-sm">
+              With these {settlements.length} transaction
+              {settlements.length !== 1 ? "s" : ""}, everyone will be settled
+              up!
+            </Text>
           </div>
-        )}
-      </Card>
+        </div>
+      )}
+      {/* </Card> */}
 
       {/* Summary Stats */}
       <Card title="Balance Summary">

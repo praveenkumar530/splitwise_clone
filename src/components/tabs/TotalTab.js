@@ -19,6 +19,10 @@ const TotalTab = () => {
   const { selectedGroup } = useAppContext();
   const { expenses, loading } = useExpenses(selectedGroup?.id);
 
+  const memberNameUserIdMapping = {};
+  selectedGroup?.members?.forEach(
+    (m) => (memberNameUserIdMapping[m?.user_id] = m?.name)
+  );
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -70,6 +74,7 @@ const TotalTab = () => {
     return person || "Unknown";
   };
 
+  console.log("personTotals ", personTotals, memberNameUserIdMapping);
   return (
     <div className="space-y-6">
       {/* Total Group Spending */}
@@ -108,7 +113,7 @@ const TotalTab = () => {
                   <div className="flex items-center justify-between py-4 px-2">
                     <div className="flex items-center space-x-3">
                       <Text strong className="text-base">
-                        {getDisplayName(person)}
+                        {getDisplayName(memberNameUserIdMapping[person])}
                       </Text>
                     </div>
                     <Text strong className="text-sm md:text-lg text-green-600">
