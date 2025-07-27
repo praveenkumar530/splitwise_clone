@@ -9,7 +9,7 @@ const { Title, Text } = Typography;
 
 const GroupsList = () => {
   const { currentUser, setSelectedGroup, setCurrentPage } = useAppContext();
-  const { groups, loading } = useGroups(currentUser?.uid);
+  const { groups, loading } = useGroups(currentUser?.email);
 
   const handleGroupSelect = (group) => {
     setSelectedGroup(group);

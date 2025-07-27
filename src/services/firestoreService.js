@@ -58,6 +58,7 @@ export const addGroup = async (userId, groupData) => {
 };
 
 export const getGroupsByUserId = async (userId) => {
+  console.log("id ", userId);
   try {
     const q = query(
       collection(db, "groups"),

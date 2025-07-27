@@ -100,11 +100,12 @@ const TransactionsTab = () => {
       key: "paidBy",
       render: (paidBy) => (
         <div className="space-y-1">
-          {paidBy?.map((person) => (
+          {paidBy}
+          {/* {paidBy?.map((person) => (
             <Tag key={person} color="blue" className="text-xs">
               {person.split("@")[0]}
             </Tag>
-          ))}
+          ))} */}
         </div>
       ),
       width: 120,
@@ -225,7 +226,7 @@ const TransactionsTab = () => {
             <Select mode="multiple" placeholder="Who paid for this?">
               {selectedGroup?.members?.map((member) => (
                 <Option key={member.user_id} value={member.user_id}>
-                  {member.user_id.split("@")[0]}
+                  {member.name}
                 </Option>
               ))}
             </Select>
@@ -244,7 +245,7 @@ const TransactionsTab = () => {
             <Select mode="multiple" placeholder="Who should split this?">
               {selectedGroup?.members?.map((member) => (
                 <Option key={member.user_id} value={member.user_id}>
-                  {member.user_id.split("@")[0]}
+                  {member.name}
                 </Option>
               ))}
             </Select>

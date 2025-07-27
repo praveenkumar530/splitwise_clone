@@ -6,59 +6,119 @@ import {
   Typography,
   Form,
   Input,
-  Select,
   Space,
   message,
+  Modal,
+  List,
+  Avatar,
+  Popconfirm,
 } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  PlusOutlined,
+  UserOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import { useAppContext } from "../contexts/AppContext";
 import { useGroups } from "../hooks/useFirestore";
 
 const { Title } = Typography;
-const { Option } = Select;
 
 const CreateGroup = () => {
   const [form] = Form.useForm();
+  const [userForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [members, setMembers] = useState([]);
+
   const { currentUser, setCurrentPage } = useAppContext();
-  const { createGroup } = useGroups(currentUser?.uid);
+  const { createGroup } = useGroups(currentUser?.email); // Use email instead of uid
 
   const validateEmail = (email) => {
+    if (!email) return true; // Email is optional
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const generateRandomId = () => {
+    return "user_" + Math.random().toString(36).substr(2, 9);
+  };
+
+  const handleAddUser = () => {
+    userForm.validateFields().then((values) => {
+      const { name, email } = values;
+
+      // Validate email if provided
+      if (email && !validateEmail(email)) {
+        message.error("Please enter a valid email address");
+        return;
+      }
+
+      // Check if user already exists (by name or email)
+      const userExists = members.some(
+        (member) =>
+          member.name.toLowerCase() === name.toLowerCase() ||
+          (email &&
+            member.email &&
+            member.email.toLowerCase() === email.toLowerCase())
+      );
+
+      if (userExists) {
+        message.error("User with this name or email already exists");
+        return;
+      }
+
+      const isGoogleUser = (email && email.includes("@gmail.com")) ?? false;
+
+      const newMember = {
+        id: Date.now().toString(), // Temporary ID for UI
+        user_id: isGoogleUser ? email.trim() : generateRandomId(), // Use email for Google users, random ID for others
+        name: name.trim(),
+        email: email?.trim() || null,
+        is_google_email: isGoogleUser,
+      };
+
+      setMembers([...members, newMember]);
+      userForm.resetFields();
+      setIsModalVisible(false);
+      message.success(`${name} added to the group`);
+    });
+  };
+
+  console.log("members ", members);
+
+  const handleRemoveUser = (userId) => {
+    setMembers(members.filter((member) => member.id !== userId));
+    message.success("User removed from group");
   };
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      const members = values.members || [];
-
-      // Validate all emails
-      const invalidEmails = members.filter((email) => !validateEmail(email));
-      if (invalidEmails.length > 0) {
-        message.error(`Invalid email addresses: ${invalidEmails.join(", ")}`);
-        setLoading(false);
-        return;
-      }
-
-      // Process members
-      const processedMembers = members.map((email) => ({
-        user_id: email,
-        is_google_email: email.includes("@gmail.com"),
-        is_account_verified: false,
+      // Process members for Firestore
+      const processedMembers = members.map((member) => ({
+        user_id: member.email || member.name, // Use email as ID if available, otherwise name
+        name: member.name,
+        email: member.email,
+        is_google_email: member.is_google_email,
       }));
 
       // Add creator as a member
       processedMembers.unshift({
-        user_id: currentUser.uid,
+        user_id: currentUser.email,
+        name: currentUser.displayName || currentUser.email,
+        email: currentUser.email,
         is_google_email: true,
-        is_account_verified: true,
       });
+
+      // Create memberIds array for efficient querying
+      const memberIds = processedMembers.map((member) => member.user_id);
 
       const groupData = {
         name: values.name,
-        creator: currentUser.uid,
+        creator: currentUser.email,
         members: processedMembers,
+        memberIds: memberIds, // For efficient Firestore queries
       };
 
       await createGroup(groupData);
@@ -101,19 +161,66 @@ const CreateGroup = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            name="members"
-            label="Add Members"
-            help="Enter email addresses of people you want to add to this group. You can add Gmail addresses for users who can login, or any email for expense splitting only."
-          >
-            <Select
-              mode="tags"
-              placeholder="Type email addresses and press Enter"
-              tokenSeparators={[",", " "]}
-              style={{ width: "100%" }}
-              size="large"
-              notFoundContent="Type an email address and press Enter to add"
-            />
+          <Form.Item label="Group Members">
+            <div className="mb-4">
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={() => setIsModalVisible(true)}
+                size="large"
+                className="w-full"
+              >
+                Add Member
+              </Button>
+            </div>
+
+            {members.length > 0 && (
+              <Card size="small" className="bg-gray-50">
+                <List
+                  dataSource={members}
+                  renderItem={(member) => (
+                    <List.Item
+                      actions={[
+                        <Popconfirm
+                          title="Remove this member?"
+                          onConfirm={() => handleRemoveUser(member.id)}
+                          okText="Yes"
+                          cancelText="No"
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            size="small"
+                          />
+                        </Popconfirm>,
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={<Avatar icon={<UserOutlined />} />}
+                        title={member.name}
+                        description={
+                          member.email ? (
+                            <span>
+                              {member.email}
+                              {member.is_google_email && (
+                                <span className="text-green-600 ml-2">
+                                  • Gmail
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">
+                              No email provided
+                            </span>
+                          )
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            )}
           </Form.Item>
 
           <Form.Item className="mb-0">
@@ -137,6 +244,48 @@ const CreateGroup = () => {
           </Form.Item>
         </Form>
       </Card>
+
+      {/* Add User Modal */}
+      <Modal
+        title="Add Member to Group"
+        open={isModalVisible}
+        onOk={handleAddUser}
+        onCancel={() => {
+          setIsModalVisible(false);
+          userForm.resetFields();
+        }}
+        okText="Add Member"
+        cancelText="Cancel"
+      >
+        <Form form={userForm} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[
+              { required: true, message: "Please enter member's name" },
+              { min: 2, message: "Name must be at least 2 characters" },
+            ]}
+          >
+            <Input placeholder="Enter member's name" size="large" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email (Optional)"
+            rules={[
+              { type: "email", message: "Please enter a valid email address" },
+            ]}
+          >
+            <Input placeholder="Enter email address (optional)" size="large" />
+          </Form.Item>
+
+          <div className="text-sm text-gray-600">
+            <p>• Name is required for all members</p>
+            <p>• Email is optional but recommended for account verification</p>
+            <p>• Gmail addresses will be marked as verified accounts</p>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };

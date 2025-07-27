@@ -55,7 +55,6 @@ const AddExpense = () => {
 
     if (checked) {
       form.setFieldsValue({
-        paidBy: allMembers,
         sharedBy: allMembers,
       });
     } else {
@@ -85,6 +84,7 @@ const AddExpense = () => {
     );
   }
 
+  console.log("selectedGroup ", selectedGroup);
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
@@ -170,15 +170,14 @@ const AddExpense = () => {
             help="Who actually paid for this expense?"
           >
             <Select
-              mode="multiple"
               placeholder="Select who paid"
               size="large"
               onChange={handlePaidByChange}
             >
               {selectedGroup.members?.map((member) => (
                 <Option key={member.user_id} value={member.user_id}>
-                  {member.user_id.split("@")[0]}
-                  {member.user_id === currentUser.uid && " (You)"}
+                  {member.name}
+                  {member.user_id === currentUser.email && " (You)"}
                 </Option>
               ))}
             </Select>
@@ -202,8 +201,8 @@ const AddExpense = () => {
             >
               {selectedGroup.members?.map((member) => (
                 <Option key={member.user_id} value={member.user_id}>
-                  {member.user_id.split("@")[0]}
-                  {member.user_id === currentUser.uid && " (You)"}
+                  {member.name}
+                  {member.user_id === currentUser.email && " (You)"}
                 </Option>
               ))}
             </Select>

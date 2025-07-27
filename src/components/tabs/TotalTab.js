@@ -31,10 +31,9 @@ const TotalTab = () => {
   const personTotals = {};
   expenses.forEach((expense) => {
     if (expense.paidBy && expense.amount) {
-      expense.paidBy.forEach((person) => {
-        const amountPaid = expense.amount / expense.paidBy.length;
-        personTotals[person] = (personTotals[person] || 0) + amountPaid;
-      });
+      // Since paidBy is always one user, not an array
+      const person = expense.paidBy;
+      personTotals[person] = (personTotals[person] || 0) + expense.amount;
     }
   });
 
@@ -49,6 +48,15 @@ const TotalTab = () => {
       dateWiseSpend[dateStr] = (dateWiseSpend[dateStr] || 0) + expense.amount;
     }
   });
+
+  // Helper function to display person name (extract name from email if needed)
+  const getDisplayName = (person) => {
+    // If person is an email, show part before @
+    if (person && person.includes("@")) {
+      return person.split("@")[0];
+    }
+    return person || "Unknown";
+  };
 
   return (
     <div className="space-y-6">
@@ -77,27 +85,31 @@ const TotalTab = () => {
           </div>
         }
       >
-        <Row gutter={[16, 16]}>
-          {Object.entries(personTotals)
-            .sort(([, a], [, b]) => b - a) // Sort by amount descending
-            .map(([person, amount]) => (
-              <Col xs={12} sm={8} md={6} key={person}>
-                <Card size="small" className="text-center">
-                  <Statistic
-                    title={
-                      <Text className="text-xs" ellipsis>
-                        {person.split("@")[0]}
-                      </Text>
-                    }
-                    value={amount}
-                    prefix="₹"
-                    precision={2}
-                    valueStyle={{ fontSize: "1.2rem" }}
-                  />
-                </Card>
-              </Col>
-            ))}
-        </Row>
+        {Object.keys(personTotals).length === 0 ? (
+          <Empty description="No payment information available" />
+        ) : (
+          <Row gutter={[16, 16]}>
+            {Object.entries(personTotals)
+              .sort(([, a], [, b]) => b - a) // Sort by amount descending
+              .map(([person, amount]) => (
+                <Col xs={12} sm={8} md={6} key={person}>
+                  <Card size="small" className="text-center">
+                    <Statistic
+                      title={
+                        <Text className="text-xs" ellipsis title={person}>
+                          {getDisplayName(person)}
+                        </Text>
+                      }
+                      value={amount}
+                      prefix="₹"
+                      precision={2}
+                      valueStyle={{ fontSize: "1.2rem" }}
+                    />
+                  </Card>
+                </Col>
+              ))}
+          </Row>
+        )}
       </Card>
 
       {/* Date-wise Spending */}

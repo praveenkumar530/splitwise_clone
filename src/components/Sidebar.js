@@ -11,7 +11,7 @@ const { Text, Title } = Typography;
 
 const Sidebar = () => {
   const { currentUser, setSelectedGroup, setCurrentPage } = useAppContext();
-  const { groups } = useGroups(currentUser?.uid);
+  const { groups } = useGroups(currentUser?.email);
 
   const handleGroupSelect = (group) => {
     setSelectedGroup(group);

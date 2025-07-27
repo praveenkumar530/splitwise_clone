@@ -11,41 +11,51 @@ import {
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
-import { message } from "antd";
 import { db } from "../firebase";
-// Hook for managing groups
-export const useGroups = (userId) => {
+import { message } from "antd";
+
+// Hook for managing groups - pass user email for Google users
+export const useGroups = (userIdentifier) => {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userIdentifier) {
+      setLoading(false);
+      return;
+    }
 
-    console.log("userId ", userId);
+    console.log("userIdentifier ", userIdentifier);
     const groupsRef = collection(db, "groups");
+
+    // Use memberIds array for efficient querying
     const q = query(
       groupsRef,
-      where("members", "array-contains", {
-        user_id: userId,
-        is_google_email: true,
-        is_account_verified: true,
-      })
+      where("memberIds", "array-contains", userIdentifier)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const groupsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setGroups(groupsData);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const groupsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setGroups(groupsData);
+        setLoading(false);
+        console.log("Groups fetched:", groupsData);
+      },
+      (error) => {
+        console.error("Error fetching groups:", error);
+        message.error("Failed to fetch groups. Please check your permissions.");
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
-  }, [userId]);
+  }, [userIdentifier]);
 
   const createGroup = async (groupData) => {
-    console.log("groupData", groupData);
     try {
       const docRef = await addDoc(collection(db, "groups"), {
         ...groupData,
@@ -55,7 +65,8 @@ export const useGroups = (userId) => {
       message.success("Group created successfully");
       return docRef.id;
     } catch (error) {
-      message.error("Failed to create group");
+      console.error("Error creating group:", error);
+      message.error(`Failed to create group: ${error.message}`);
       throw error;
     }
   };
@@ -69,7 +80,8 @@ export const useGroups = (userId) => {
       });
       message.success("Group updated successfully");
     } catch (error) {
-      message.error("Failed to update group");
+      console.error("Error updating group:", error);
+      message.error(`Failed to update group: ${error.message}`);
       throw error;
     }
   };
@@ -79,7 +91,8 @@ export const useGroups = (userId) => {
       await deleteDoc(doc(db, "groups", groupId));
       message.success("Group deleted successfully");
     } catch (error) {
-      message.error("Failed to delete group");
+      console.error("Error deleting group:", error);
+      message.error(`Failed to delete group: ${error.message}`);
       throw error;
     }
   };
@@ -99,7 +112,10 @@ export const useExpenses = (groupId) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!groupId) return;
+    if (!groupId) {
+      setLoading(false);
+      return;
+    }
 
     const expensesRef = collection(db, "expenses");
     const q = query(
@@ -108,14 +124,24 @@ export const useExpenses = (groupId) => {
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const expensesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setExpenses(expensesData);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const expensesData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setExpenses(expensesData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching expenses:", error);
+        message.error(
+          "Failed to fetch expenses. Please check your permissions."
+        );
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [groupId]);
@@ -129,7 +155,8 @@ export const useExpenses = (groupId) => {
       });
       message.success("Expense added successfully");
     } catch (error) {
-      message.error("Failed to add expense");
+      console.error("Error adding expense:", error);
+      message.error(`Failed to add expense: ${error.message}`);
       throw error;
     }
   };
@@ -143,7 +170,8 @@ export const useExpenses = (groupId) => {
       });
       message.success("Expense updated successfully");
     } catch (error) {
-      message.error("Failed to update expense");
+      console.error("Error updating expense:", error);
+      message.error(`Failed to update expense: ${error.message}`);
       throw error;
     }
   };
@@ -153,7 +181,8 @@ export const useExpenses = (groupId) => {
       await deleteDoc(doc(db, "expenses", expenseId));
       message.success("Expense deleted successfully");
     } catch (error) {
-      message.error("Failed to delete expense");
+      console.error("Error deleting expense:", error);
+      message.error(`Failed to delete expense: ${error.message}`);
       throw error;
     }
   };
