@@ -34,14 +34,11 @@ const BalancesTab = () => {
     if (!expense.amount || !expense.paidBy || !expense.sharedBy) return;
 
     const shareAmount = expense.amount / expense.sharedBy.length;
-    const paidAmount = expense.amount / expense.paidBy.length;
 
-    // Add to paid amount for payers
-    expense.paidBy.forEach((payer) => {
-      if (balances[payer]) {
-        balances[payer].paid += paidAmount;
-      }
-    });
+    // Add to paid amount for the single payer
+    if (balances[expense.paidBy]) {
+      balances[expense.paidBy].paid += expense.amount;
+    }
 
     // Add to owes amount for sharers
     expense.sharedBy.forEach((sharer) => {
