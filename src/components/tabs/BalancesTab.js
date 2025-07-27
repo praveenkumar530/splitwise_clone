@@ -31,7 +31,12 @@ const BalancesTab = () => {
   // Calculate balances
   const balances = {};
   selectedGroup?.members?.forEach((member) => {
-    balances[member.user_id] = { paid: 0, owes: 0, balance: 0 };
+    balances[member.user_id] = {
+      paid: 0,
+      owes: 0,
+      balance: 0,
+      name: member?.name,
+    };
   });
 
   expenses.forEach((expense) => {
@@ -54,6 +59,7 @@ const BalancesTab = () => {
 
   // Calculate net balance
   Object.keys(balances).forEach((person) => {
+    console.log(balances[person].paid - balances[person].owes);
     balances[person].balance = balances[person].paid - balances[person].owes;
   });
 
@@ -70,35 +76,45 @@ const BalancesTab = () => {
     ([, balance]) => Math.abs(balance.balance) <= 0.01
   );
 
-  // Simple debt simplification
+  // Simple debt simplification - FIXED VERSION (Solution 2)
   const simplifyDebts = () => {
     const settlements = [];
-    const creditorsCopy = [...creditors];
-    const debtorsCopy = [...debtors];
 
-    while (creditorsCopy.length > 0 && debtorsCopy.length > 0) {
-      const [creditor, creditorBalance] = creditorsCopy[0];
-      const [debtor, debtorBalance] = debtorsCopy[0];
+    // Work with separate data structures instead of modifying balance objects
+    let creditorsData = creditors.map(([id, balance]) => ({
+      id,
+      name: balance.name,
+      amount: balance.balance,
+    }));
 
-      const amount = Math.min(
-        creditorBalance.balance,
-        Math.abs(debtorBalance.balance)
-      );
+    let debtorsData = debtors.map(([id, balance]) => ({
+      id,
+      name: balance.name,
+      amount: Math.abs(balance.balance),
+    }));
+
+    while (creditorsData.length > 0 && debtorsData.length > 0) {
+      const creditor = creditorsData[0];
+      const debtor = debtorsData[0];
+
+      const amount = Math.min(creditor.amount, debtor.amount);
 
       settlements.push({
-        from: debtor,
-        to: creditor,
+        from: debtor.id,
+        to: creditor.id,
+        fromName: debtor.name,
+        toName: creditor.name,
         amount: amount,
       });
 
-      creditorBalance.balance -= amount;
-      debtorBalance.balance += amount;
+      creditor.amount -= amount;
+      debtor.amount -= amount;
 
-      if (creditorBalance.balance <= 0.01) {
-        creditorsCopy.shift();
+      if (creditor.amount <= 0.01) {
+        creditorsData.shift();
       }
-      if (Math.abs(debtorBalance.balance) <= 0.01) {
-        debtorsCopy.shift();
+      if (debtor.amount <= 0.01) {
+        debtorsData.shift();
       }
     }
 
@@ -121,10 +137,10 @@ const BalancesTab = () => {
               >
                 <div className="flex-1">
                   <Text strong className="text-base">
-                    {person.split("@")[0]}
+                    {balance.name}
                   </Text>
                   <div className="text-sm text-gray-500 mt-1">
-                    <Space split={<span>•</span>}>
+                    <Space split={<span>|</span>}>
                       <span>Paid: ₹{balance.paid.toFixed(2)}</span>
                       <span>Owes: ₹{balance.owes.toFixed(2)}</span>
                     </Space>
@@ -179,9 +195,13 @@ const BalancesTab = () => {
                 className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
               >
                 <div className="flex items-center space-x-3">
-                  <Text strong>{settlement.from.split("@")[0]}</Text>
+                  <Text strong>
+                    {settlement.fromName || settlement.from.split("@")[0]}
+                  </Text>
                   <SwapOutlined className="text-blue-500" />
-                  <Text strong>{settlement.to.split("@")[0]}</Text>
+                  <Text strong>
+                    {settlement.toName || settlement.to.split("@")[0]}
+                  </Text>
                 </div>
                 <Tag color="blue" className="text-base font-medium">
                   ₹{settlement.amount.toFixed(2)}
