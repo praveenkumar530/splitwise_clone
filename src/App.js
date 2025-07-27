@@ -1,222 +1,84 @@
-import React, { useState, useEffect } from "react";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import Login from "./components/Login";
+import React from "react";
+import { Layout, Spin } from "antd";
+import { AppProvider, useAppContext } from "./contexts/AppContext";
+import Auth from "./components/Auth";
 import Sidebar from "./components/Sidebar";
-import UsersView from "./components/UsersView";
-import GroupsView from "./components/GroupsView";
-import GroupDetailView from "./components/GroupDetailView";
-import {
-  addUser as addUserToFirestore,
-  addGroup as addGroupToFirestore,
-  addExpense as addExpenseToFirestore,
-  updateGroup,
-  subscribeToUsers,
-  subscribeToGroups,
-  subscribeToExpenses,
-} from "./services/firestoreService";
+import GroupsList from "./components/GroupsList";
+import CreateGroup from "./components/CreateGroup";
+import GroupDetail from "./components/GroupDetail";
+import AddExpense from "./components/AddExpense";
 
-const MainApp = () => {
-  const { currentUser, logout } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [currentView, setCurrentView] = useState("users");
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [loading, setLoading] = useState(true);
+const { Sider, Content } = Layout;
 
-  // Subscribe to real-time updates
-  useEffect(() => {
-    if (!currentUser) return;
+// Main Content Router Component
+const MainContent = () => {
+  const { currentPage } = useAppContext();
 
-    setLoading(true);
+  switch (currentPage) {
+    case "groups":
+      return <GroupsList />;
+    case "groupDetail":
+      return <GroupDetail />;
+    case "addExpense":
+      return <AddExpense />;
+    case "createGroup":
+      return <CreateGroup />;
+    default:
+      return <GroupsList />;
+  }
+};
 
-    // Subscribe to users
-    const unsubscribeUsers = subscribeToUsers(
-      currentUser.uid,
-      (updatedUsers) => {
-        setUsers(updatedUsers);
-      }
-    );
-
-    // Subscribe to groups
-    const unsubscribeGroups = subscribeToGroups(
-      currentUser.uid,
-      (updatedGroups) => {
-        setGroups(updatedGroups);
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      unsubscribeUsers();
-      unsubscribeGroups();
-    };
-  }, [currentUser]);
-
-  // Update selected group when groups change
-  useEffect(() => {
-    if (selectedGroup) {
-      const updatedGroup = groups.find((g) => g.id === selectedGroup.id);
-      if (updatedGroup) {
-        setSelectedGroup(updatedGroup);
-      }
-    }
-  }, [groups, selectedGroup]);
-
-  // Add user function
-  const addUser = async (userData) => {
-    try {
-      await addUserToFirestore(currentUser.uid, {
-        name: userData.name.trim(),
-        email: userData.email.trim(),
-      });
-    } catch (error) {
-      console.error("Error adding user:", error);
-      alert("Failed to add user. Please try again.");
-    }
-  };
-
-  // Add group function
-  const addGroup = async (groupData) => {
-    try {
-      const newGroup = {
-        name: groupData.name.trim(),
-        members: groupData.selectedUsers,
-        expenses: [],
-        balances: {},
-        total: 0,
-      };
-
-      // Initialize balances for all members
-      groupData.selectedUsers.forEach((userId) => {
-        newGroup.balances[userId] = 0;
-      });
-
-      await addGroupToFirestore(currentUser.uid, newGroup);
-    } catch (error) {
-      console.error("Error adding group:", error);
-      alert("Failed to create group. Please try again.");
-    }
-  };
-
-  // Add expense function
-  const addExpense = async (expenseData) => {
-    try {
-      const amount = parseFloat(expenseData.amount);
-      const shareAmount = amount / expenseData.sharedBy.length;
-
-      const newExpense = {
-        description: expenseData.description.trim(),
-        amount: amount,
-        paidBy: expenseData.paidBy,
-        sharedBy: expenseData.sharedBy,
-        date: expenseData.date,
-        shareAmount: shareAmount,
-      };
-
-      // Add expense to Firestore
-      await addExpenseToFirestore(
-        currentUser.uid,
-        selectedGroup.id,
-        newExpense
-      );
-
-      // Update group balances and total
-      const updatedGroup = { ...selectedGroup };
-      updatedGroup.total += amount;
-
-      // Update balances
-      updatedGroup.balances[expenseData.paidBy] += amount;
-      expenseData.sharedBy.forEach((userId) => {
-        updatedGroup.balances[userId] -= shareAmount;
-      });
-
-      // Update group in Firestore
-      await updateGroup(selectedGroup.id, {
-        balances: updatedGroup.balances,
-        total: updatedGroup.total,
-      });
-    } catch (error) {
-      console.error("Error adding expense:", error);
-      alert("Failed to add expense. Please try again.");
-    }
-  };
-
-  // Get user name by ID
-  const getUserName = (userId) => {
-    const user = users.find((u) => u.id === userId);
-    return user ? user.name : "Unknown";
-  };
-
-  // Handle group selection
-  const selectGroup = (group) => {
-    setSelectedGroup(group);
-    setCurrentView("group-detail");
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
+// App Layout Component
+const AppLayout = () => {
+  const { currentUser, loading } = useAppContext();
 
   if (loading) {
     return (
-      <div className="h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your data...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Spin size="large" />
       </div>
     );
   }
 
+  if (!currentUser) {
+    return <Auth />;
+  }
+
   return (
-    <div className="h-screen bg-gray-100 flex">
-      <Sidebar
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        currentUser={currentUser}
-        onLogout={handleLogout}
-      />
+    <Layout className="min-h-screen bg-gray-50">
+      <Sider
+        width={280}
+        className="bg-white shadow-lg"
+        breakpoint="md"
+        collapsedWidth="0"
+        style={{
+          overflow: "auto",
+          height: "100vh",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+        }}
+      >
+        <Sidebar />
+      </Sider>
 
-      {currentView === "users" && <UsersView users={users} addUser={addUser} />}
-
-      {currentView === "groups" && (
-        <GroupsView
-          groups={groups}
-          users={users}
-          addGroup={addGroup}
-          selectGroup={selectGroup}
-        />
-      )}
-
-      {currentView === "group-detail" && selectedGroup && (
-        <GroupDetailView
-          selectedGroup={selectedGroup}
-          users={users}
-          addExpense={addExpense}
-          getUserName={getUserName}
-          goBack={() => setCurrentView("groups")}
-        />
-      )}
-    </div>
+      <Layout style={{ marginLeft: 280 }}>
+        <Content className="p-4 md:p-6 min-h-screen">
+          <MainContent />
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 
+// Main App Component
 const App = () => {
   return (
-    <AuthProvider>
-      <AuthContent />
-    </AuthProvider>
+    <AppProvider>
+      <AppLayout />
+    </AppProvider>
   );
-};
-
-const AuthContent = () => {
-  const { currentUser } = useAuth();
-
-  return currentUser ? <MainApp /> : <Login />;
 };
 
 export default App;

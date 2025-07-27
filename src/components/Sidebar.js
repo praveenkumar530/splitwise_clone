@@ -1,57 +1,113 @@
+// components/Sidebar.js
 import React from "react";
-import { Users, Group, LogOut } from "lucide-react";
+import { Button, Card, Typography, Avatar, Space } from "antd";
+import { PlusOutlined, TeamOutlined, LogoutOutlined } from "@ant-design/icons";
+import { useAppContext } from "../contexts/AppContext";
+import { useGroups } from "../hooks/useFirestore";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
-const Sidebar = ({ currentView, setCurrentView, currentUser, onLogout }) => {
+const { Text, Title } = Typography;
+
+const Sidebar = () => {
+  const { currentUser, setSelectedGroup, setCurrentPage } = useAppContext();
+  const { groups } = useGroups(currentUser?.uid);
+
+  const handleGroupSelect = (group) => {
+    setSelectedGroup(group);
+    setCurrentPage("groupDetail");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   return (
-    <div className="w-16 bg-blue-600 text-white flex flex-col justify-between py-4">
-      {/* Navigation Icons */}
-      <div className="flex flex-col items-center space-y-4">
-        <button
-          onClick={() => setCurrentView("users")}
-          className={`p-3 rounded-lg transition-colors ${
-            currentView === "users" ? "bg-blue-800" : "hover:bg-blue-700"
-          }`}
-          title="Users"
-        >
-          <Users size={24} />
-        </button>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b">
+        <Title level={4} className="text-center text-blue-600 mb-4">
+          💰 SplitWise
+        </Title>
 
-        <button
-          onClick={() => setCurrentView("groups")}
-          className={`p-3 rounded-lg transition-colors ${
-            currentView === "groups" ? "bg-blue-800" : "hover:bg-blue-700"
-          }`}
-          title="Groups"
-        >
-          <Group size={24} />
-        </button>
-      </div>
-
-      {/* User Info & Logout */}
-      <div className="flex flex-col items-center space-y-3">
-        {/* User Avatar */}
-        <div className="relative group">
-          <img
-            src={
-              currentUser?.photoURL ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                currentUser?.displayName || "User"
-              )}&background=3b82f6&color=ffffff`
-            }
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-blue-400 cursor-pointer hover:border-white transition-colors"
-            title={currentUser?.displayName || currentUser?.email}
-          />
+        {/* User Info */}
+        <div className="flex items-center space-x-3 mb-4">
+          <Avatar src={currentUser?.photoURL} icon={<TeamOutlined />} />
+          <div className="flex-1 min-w-0">
+            <Text strong className="block truncate">
+              {currentUser?.displayName || currentUser?.email}
+            </Text>
+            <Text type="secondary" className="text-xs block truncate">
+              {currentUser?.email}
+            </Text>
+          </div>
         </div>
 
-        {/* Logout Button */}
-        <button
-          onClick={onLogout}
-          className="p-3 rounded-lg hover:bg-red-600 transition-colors"
-          title="Logout"
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          className="w-full"
+          onClick={() => setCurrentPage("createGroup")}
         >
-          <LogOut size={20} />
-        </button>
+          Create Group
+        </Button>
+      </div>
+
+      {/* Groups List */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        <Text strong className="text-gray-600 block mb-3">
+          Your Groups
+        </Text>
+        <div className="space-y-2">
+          {groups.map((group) => (
+            <Card
+              key={group.id}
+              hoverable
+              size="small"
+              className="cursor-pointer border-l-4 border-l-blue-500"
+              onClick={() => handleGroupSelect(group)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <Text strong className="block truncate">
+                    {group.name}
+                  </Text>
+                  <div className="text-xs text-gray-500">
+                    {group.members?.length || 0} members
+                  </div>
+                </div>
+                <TeamOutlined className="text-blue-500 ml-2" />
+              </div>
+            </Card>
+          ))}
+
+          {groups.length === 0 && (
+            <div className="text-center py-8">
+              <TeamOutlined className="text-4xl text-gray-300 mb-2" />
+              <Text type="secondary">No groups yet</Text>
+              <div className="text-xs text-gray-400 mt-1">
+                Create your first group to get started
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="p-4 border-t">
+        <Button
+          type="text"
+          icon={<LogoutOutlined />}
+          onClick={handleLogout}
+          className="w-full text-left"
+          danger
+        >
+          Logout
+        </Button>
       </div>
     </div>
   );
