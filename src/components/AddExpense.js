@@ -84,10 +84,9 @@ const AddExpense = () => {
     );
   }
 
-  console.log("selectedGroup ", selectedGroup);
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-2 md:mb-6">
         <Button
           type="link"
           icon={<ArrowLeftOutlined />}
@@ -117,10 +116,7 @@ const AddExpense = () => {
               { min: 2, message: "Description must be at least 2 characters" },
             ]}
           >
-            <Input
-              placeholder="What was this expense for? (e.g., Dinner, Hotel, Gas)"
-              size="large"
-            />
+            <Input placeholder="What was this expense for?" size="large" />
           </Form.Item>
 
           <Form.Item
@@ -152,9 +148,6 @@ const AddExpense = () => {
               className="text-blue-600"
             >
               <span className="font-medium">Select All Members</span>
-              <div className="text-xs text-gray-500 mt-1">
-                Quickly select all members for both payment and sharing
-              </div>
             </Checkbox>
           </div>
 
@@ -208,7 +201,7 @@ const AddExpense = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item className="mb-0 pt-4">
+          <Form.Item className="mb-0 pt-2 md:pt-4">
             <Space size="large">
               <Button
                 type="primary"
@@ -228,23 +221,6 @@ const AddExpense = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Card>
-
-      {/* Quick Tips */}
-      <Card className="mt-6" size="small">
-        <Title level={5} className="text-blue-600 mb-3">
-          💡 Quick Tips
-        </Title>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Use "Select All" for expenses everyone shared equally</li>
-          <li>• "Paid By" can be multiple people if they split the payment</li>
-          <li>
-            • "Shared By" should include everyone who benefits from the expense
-          </li>
-          <li>
-            • You can always edit expenses later from the Transactions tab
-          </li>
-        </ul>
       </Card>
     </div>
   );

@@ -195,3 +195,42 @@ export const useExpenses = (groupId) => {
     deleteExpense,
   };
 };
+
+// Members Hook (specific hook for member operations)
+export const useMembers = (groupId) => {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!groupId) {
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(
+      doc(db, "groups", groupId),
+      (doc) => {
+        if (doc.exists()) {
+          const groupData = doc.data();
+          setMembers(groupData.members || []);
+        } else {
+          setMembers([]);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching members:", error);
+        message.error("Failed to load members");
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [groupId]);
+
+  return {
+    members,
+    loading,
+  };
+};

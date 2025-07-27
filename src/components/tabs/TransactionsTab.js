@@ -210,7 +210,7 @@ const TransactionsTab = () => {
     return (
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex items-center mb-6 p-4 border-b">
+        <div className="flex items-center mb-2 md:mb-6 p-1 md:p-4 border-b">
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
@@ -223,21 +223,21 @@ const TransactionsTab = () => {
         </div>
 
         {/* Main Details */}
-        <div className="p-6">
-          <div className="text-center mb-8">
-            <div className="text-6xl mb-4">
+        <div className="p-2 md:p-6">
+          <div className="text-center mb-2 md:mb-8">
+            <div className="text-3xl md:text-6xl mb-4">
               {getExpenseIcon(selectedExpense.description)}
             </div>
-            <Title level={2} className="mb-2">
+            <Title level={2} className="mb-0.5 md:mb-2 !text-xl md:text-xl">
               {selectedExpense.description}
             </Title>
-            <Text className="text-2xl text-green-600 font-semibold">
+            <Text className="text-md md:text-2xl text-green-600 font-semibold">
               ₹{selectedExpense.amount?.toFixed(2)}
             </Text>
           </div>
 
           {/* Paid By */}
-          <Card className="mb-4" title="Paid By">
+          <Card className="mb-2 md:mb-4" title="Paid By">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Avatar icon={<UserOutlined />} />
@@ -388,7 +388,7 @@ const TransactionsTab = () => {
                     {youLent > 0 && (
                       <>
                         <div className="text-xs text-gray-500">you lent</div>
-                        <div className="text-lg font-semibold text-green-600">
+                        <div className="text-[12px] md:text-lg  font-semibold text-green-600">
                           ₹{youLent.toFixed(2)}
                         </div>
                       </>
@@ -398,7 +398,7 @@ const TransactionsTab = () => {
                         <div className="text-xs text-gray-500">
                           you borrowed
                         </div>
-                        <div className="text-lg font-semibold text-red-600">
+                        <div className="text-[12px] md:text-lg font-semibold text-red-600">
                           ₹{youBorrowed.toFixed(2)}
                         </div>
                       </>

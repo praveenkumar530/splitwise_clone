@@ -7,6 +7,7 @@ import TransactionsTab from "./tabs/TransactionsTab";
 import TotalTab from "./tabs/TotalTab";
 import BalancesTab from "./tabs/BalancesTab";
 import ExportTab from "./tabs/ExportTab";
+import MembersTab from "./tabs/MembersTab";
 
 const { Title } = Typography;
 const { TabPane } = Tabs;
@@ -70,6 +71,9 @@ const GroupDetail = () => {
           </TabPane>
           <TabPane tab="Balances" key="balances">
             <BalancesTab />
+          </TabPane>
+          <TabPane tab="Members" key="members">
+            <MembersTab />
           </TabPane>
           <TabPane tab="Export" key="export">
             <ExportTab />
