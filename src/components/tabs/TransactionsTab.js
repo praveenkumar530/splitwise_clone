@@ -7,13 +7,19 @@ import {
   Input,
   Select,
   InputNumber,
-  Tag,
   Empty,
-  Card,
   Typography,
   Divider,
+  Card,
+  Spin,
+  Avatar,
 } from "antd";
-import { EditOutlined, DeleteOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  ArrowLeftOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { useAppContext } from "../../contexts/AppContext";
 import { useExpenses } from "../../hooks/useFirestore";
 
@@ -21,11 +27,12 @@ const { Option } = Select;
 const { Text, Title } = Typography;
 
 const TransactionsTab = () => {
-  const { selectedGroup } = useAppContext();
+  const { selectedGroup, currentUser } = useAppContext();
   const { expenses, loading, updateExpense, deleteExpense } = useExpenses(
     selectedGroup?.id
   );
   const [editingExpense, setEditingExpense] = useState(null);
+  const [selectedExpense, setSelectedExpense] = useState(null);
   const [form] = Form.useForm();
 
   const handleEdit = (expense) => {
@@ -59,6 +66,7 @@ const TransactionsTab = () => {
       onOk: async () => {
         try {
           await deleteExpense(expenseId);
+          setSelectedExpense(null);
         } catch (error) {
           console.error("Error deleting expense:", error);
         }
@@ -103,7 +111,7 @@ const TransactionsTab = () => {
     }
   };
 
-  // Get expense category icon (you can expand this)
+  // Get expense category icon
   const getExpenseIcon = (description) => {
     const desc = description.toLowerCase();
     if (
@@ -141,8 +149,44 @@ const TransactionsTab = () => {
     return member?.name || email.split("@")[0];
   };
 
+  // Get month and day from date
+  const getDateParts = (expense) => {
+    const date = expense.createdAt?.toDate
+      ? expense.createdAt.toDate()
+      : new Date(expense.createdAt);
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const day = date.getDate().toString().padStart(2, "0");
+    return { month, day };
+  };
+
+  // Calculate individual amounts
+  const calculateAmounts = (expense) => {
+    const shareAmount = expense.amount / expense.sharedBy?.length || 1;
+    const isCurrentUserPayer = expense.paidBy === currentUser?.email;
+    const isCurrentUserInvolved = expense.sharedBy?.includes(
+      currentUser?.email
+    );
+
+    let youLent = 0;
+    let youBorrowed = 0;
+
+    if (isCurrentUserPayer && isCurrentUserInvolved) {
+      youLent = expense.amount - shareAmount; // What others owe you
+    } else if (isCurrentUserPayer && !isCurrentUserInvolved) {
+      youLent = expense.amount; // You paid but not involved in split
+    } else if (!isCurrentUserPayer && isCurrentUserInvolved) {
+      youBorrowed = shareAmount; // You owe the payer
+    }
+
+    return { youLent, youBorrowed, shareAmount };
+  };
+
   if (loading) {
-    return <div className="text-center py-8">Loading transactions...</div>;
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Spin />
+      </div>
+    );
   }
 
   if (expenses.length === 0) {
@@ -158,6 +202,125 @@ const TransactionsTab = () => {
     );
   }
 
+  // Show expense detail view
+  if (selectedExpense) {
+    const { youLent, youBorrowed, shareAmount } =
+      calculateAmounts(selectedExpense);
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center mb-6 p-4 border-b">
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => setSelectedExpense(null)}
+            className="mr-3"
+          />
+          <Title level={4} className="m-0">
+            Transaction Details
+          </Title>
+        </div>
+
+        {/* Main Details */}
+        <div className="p-6">
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">
+              {getExpenseIcon(selectedExpense.description)}
+            </div>
+            <Title level={2} className="mb-2">
+              {selectedExpense.description}
+            </Title>
+            <Text className="text-2xl text-green-600 font-semibold">
+              ₹{selectedExpense.amount?.toFixed(2)}
+            </Text>
+          </div>
+
+          {/* Paid By */}
+          <Card className="mb-4" title="Paid By">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Avatar icon={<UserOutlined />} />
+                <Text strong>{getMemberName(selectedExpense.paidBy)}</Text>
+              </div>
+              <Text className="text-lg">
+                ₹{selectedExpense.amount?.toFixed(2)}
+              </Text>
+            </div>
+          </Card>
+
+          {/* Split Details */}
+          <Card title="Split Between">
+            <div className="space-y-3">
+              {selectedExpense.sharedBy?.map((person) => (
+                <div key={person} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Avatar icon={<UserOutlined />} />
+                    <Text strong>
+                      {person === currentUser?.email
+                        ? "You"
+                        : getMemberName(person)}
+                    </Text>
+                  </div>
+                  <div className="text-right">
+                    <Text className="text-lg">₹{shareAmount.toFixed(2)}</Text>
+                    {person === currentUser?.email && youBorrowed > 0 && (
+                      <div className="text-sm text-red-500">you borrowed</div>
+                    )}
+                    {person === currentUser?.email && youLent > 0 && (
+                      <div className="text-sm text-green-500">you lent</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Your Summary */}
+          {(youLent > 0 || youBorrowed > 0) && (
+            <Card className="mt-4 bg-blue-50">
+              <div className="text-center">
+                <Text className="text-lg">Your Balance</Text>
+                <div className="text-2xl font-semibold mt-2">
+                  {youLent > 0 && (
+                    <Text className="text-green-600">
+                      +₹{youLent.toFixed(2)} (you lent)
+                    </Text>
+                  )}
+                  {youBorrowed > 0 && (
+                    <Text className="text-red-600">
+                      -₹{youBorrowed.toFixed(2)} (you borrowed)
+                    </Text>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-center space-x-4 mt-8">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(selectedExpense)}
+              size="large"
+            >
+              Edit
+            </Button>
+            <Button
+              icon={<DeleteOutlined />}
+              danger
+              onClick={() => handleDelete(selectedExpense.id)}
+              size="large"
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show main list view
   const groupedExpenses = groupExpensesByDate(expenses);
   const sortedDates = Object.keys(groupedExpenses).sort(
     (a, b) => new Date(b) - new Date(a)
@@ -176,95 +339,84 @@ const TransactionsTab = () => {
           </div>
 
           {/* Expenses for this date */}
-          <div className="space-y-3">
-            {groupedExpenses[dateKey].map((expense) => (
-              <Card
-                key={expense.id}
-                className="hover:shadow-md transition-shadow"
-                bodyStyle={{ padding: "16px" }}
-              >
-                <div className="flex items-center justify-between">
-                  {/* Left side - Icon and description */}
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl">
-                      {getExpenseIcon(expense.description)}
+          <div className="space-y-3  md:text-xs">
+            {groupedExpenses[dateKey].map((expense) => {
+              const { month, day } = getDateParts(expense);
+              const { youLent, youBorrowed } = calculateAmounts(expense);
+              const isPaidByCurrentUser = expense.paidBy === currentUser?.email;
+
+              return (
+                <div
+                  key={expense.id}
+                  className="flex items-center p-1 md:p-4 bg-white rounded-lg border   cursor-pointer"
+                  onClick={() => setSelectedExpense(expense)}
+                >
+                  {/* Date Column */}
+                  <div className="text-center mr-1 md:mr-4 min-w-[26px] md:min-w-[50px]">
+                    <div className="text-[10px] md:text-sm text-gray-500 uppercase">
+                      {month}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <Text strong className="block text-base">
-                        {expense.description}
-                      </Text>
-                      <Text type="secondary" className="text-sm">
-                        {getMemberName(expense.paidBy)} paid ₹
-                        {expense.amount?.toFixed(2)}
-                      </Text>
+                    <div className="text-sm md:text-xl font-semibold">
+                      {day}
                     </div>
                   </div>
 
-                  {/* Right side - Amount and actions */}
-                  <div className="flex items-center space-x-4">
-                    {/* Shared by tags */}
-                    <div className="hidden sm:flex flex-wrap gap-1 max-w-32">
-                      {expense.sharedBy?.slice(0, 2).map((person) => (
-                        <Tag key={person} color="green" className="text-xs m-0">
-                          {getMemberName(person)}
-                        </Tag>
-                      ))}
-                      {expense.sharedBy?.length > 2 && (
-                        <Tag color="default" className="text-xs m-0">
-                          +{expense.sharedBy.length - 2} more
-                        </Tag>
-                      )}
-                    </div>
-
-                    {/* Amount */}
-                    <div className="text-right">
-                      <Text className="text-gray-500 text-sm block">
-                        you lent
-                      </Text>
-                      <Text strong className="text-green-600 text-lg">
-                        ₹
-                        {(
-                          expense.amount / expense.sharedBy?.length || 1
-                        ).toFixed(2)}
-                      </Text>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-col space-y-1">
-                      <Button
-                        icon={<EditOutlined />}
-                        size="small"
-                        type="text"
-                        onClick={() => handleEdit(expense)}
-                        className="w-8 h-8 flex items-center justify-center"
-                      />
-                      <Button
-                        icon={<DeleteOutlined />}
-                        size="small"
-                        type="text"
-                        danger
-                        onClick={() => handleDelete(expense.id)}
-                        className="w-8 h-8 flex items-center justify-center"
-                      />
-                    </div>
+                  {/* Icon */}
+                  <div className=" size-6 md:size-12 bg-gray-100 rounded-full flex items-center justify-center text-xl mr-4">
+                    {getExpenseIcon(expense.description)}
                   </div>
-                </div>
 
-                {/* Mobile view - Show shared by below */}
-                <div className="sm:hidden mt-3 pt-3 border-t border-gray-100">
-                  <Text type="secondary" className="text-xs block mb-1">
-                    Shared by:
-                  </Text>
-                  <div className="flex flex-wrap gap-1">
-                    {expense.sharedBy?.map((person) => (
-                      <Tag key={person} color="green" className="text-xs">
-                        {getMemberName(person)}
-                      </Tag>
-                    ))}
+                  {/* Description Column */}
+                  <div className="flex-1 min-w-0">
+                    <Text
+                      strong
+                      className="block text-base truncate text-[11px] md:text-sm"
+                    >
+                      {expense.description}
+                    </Text>
+                    <Text type="secondary" className="text-[10px] md:text-sm">
+                      {isPaidByCurrentUser
+                        ? `You paid ₹${expense.amount?.toFixed(2)}`
+                        : `${getMemberName(
+                            expense.paidBy
+                          )} paid ₹${expense.amount?.toFixed(2)}`}
+                    </Text>
+                  </div>
+
+                  {/* Amount Column */}
+                  <div className="text-right min-w-[80px]">
+                    {youLent > 0 && (
+                      <>
+                        <div className="text-xs text-gray-500">you lent</div>
+                        <div className="text-lg font-semibold text-green-600">
+                          ₹{youLent.toFixed(2)}
+                        </div>
+                      </>
+                    )}
+                    {youBorrowed > 0 && (
+                      <>
+                        <div className="text-xs text-gray-500">
+                          you borrowed
+                        </div>
+                        <div className="text-lg font-semibold text-red-600">
+                          ₹{youBorrowed.toFixed(2)}
+                        </div>
+                      </>
+                    )}
+                    {youLent === 0 && youBorrowed === 0 && (
+                      <>
+                        <div className="text-xs text-gray-500">
+                          not involved
+                        </div>
+                        <div className="text-lg font-semibold text-gray-400">
+                          ₹0.00
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
-              </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}

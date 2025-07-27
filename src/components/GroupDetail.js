@@ -57,7 +57,11 @@ const GroupDetail = () => {
 
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-sm">
-        <Tabs defaultActiveKey="transactions" className="p-4" type="card">
+        <Tabs
+          defaultActiveKey="transactions"
+          className="p-2 md:p-4"
+          type="card"
+        >
           <TabPane tab="Transactions" key="transactions">
             <TransactionsTab />
           </TabPane>

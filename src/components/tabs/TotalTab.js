@@ -1,6 +1,6 @@
 // components/tabs/TotalTab.js
 import React from "react";
-import { Card, Statistic, Row, Col, Typography, Empty } from "antd";
+import { Card, Statistic, Row, Col, Typography, Empty, Spin } from "antd";
 import { DollarOutlined } from "@ant-design/icons";
 import { useAppContext } from "../../contexts/AppContext";
 import { useExpenses } from "../../hooks/useFirestore";
@@ -12,7 +12,11 @@ const TotalTab = () => {
   const { expenses, loading } = useExpenses(selectedGroup?.id);
 
   if (loading) {
-    return <div className="text-center py-8">Loading totals...</div>;
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Spin />
+      </div>
+    );
   }
 
   if (expenses.length === 0) {

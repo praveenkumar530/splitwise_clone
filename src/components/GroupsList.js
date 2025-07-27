@@ -1,6 +1,6 @@
 // components/GroupsList.js
 import React from "react";
-import { Button, Card, Typography, Avatar, Row, Col, Empty } from "antd";
+import { Button, Card, Typography, Avatar, Row, Col, Empty, Spin } from "antd";
 import { PlusOutlined, TeamOutlined } from "@ant-design/icons";
 import { useAppContext } from "../contexts/AppContext";
 import { useGroups } from "../hooks/useFirestore";
@@ -25,8 +25,8 @@ const GroupsList = () => {
             Create Group
           </Button>
         </div>
-        <div className="text-center py-8">
-          <Text>Loading groups...</Text>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <Spin />
         </div>
       </div>
     );

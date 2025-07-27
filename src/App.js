@@ -134,7 +134,7 @@ const AppLayout = () => {
 
       {/* Main Content */}
       <Layout style={{ marginLeft: 64 }}>
-        <Content className="p-4 md:p-6 min-h-screen">
+        <Content className="p-2 md:p-6 min-h-screen">
           <MainContent />
         </Content>
       </Layout>

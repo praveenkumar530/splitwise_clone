@@ -1,6 +1,6 @@
 // components/tabs/BalancesTab.js
 import React from "react";
-import { Card, Button, Typography, Tag, Space, Empty, Divider } from "antd";
+import { Card, Typography, Tag, Space, Empty, Divider, Spin } from "antd";
 import { CalculatorOutlined, SwapOutlined } from "@ant-design/icons";
 import { useAppContext } from "../../contexts/AppContext";
 import { useExpenses } from "../../hooks/useFirestore";
@@ -12,7 +12,11 @@ const BalancesTab = () => {
   const { expenses, loading } = useExpenses(selectedGroup?.id);
 
   if (loading) {
-    return <div className="text-center py-8">Loading balances...</div>;
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Spin />
+      </div>
+    );
   }
 
   if (expenses.length === 0) {
