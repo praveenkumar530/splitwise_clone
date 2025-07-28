@@ -21,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import { useAppContext } from "../contexts/AppContext";
 import { useGroups } from "../hooks/useFirestore";
+import { sendNotification } from "../utils/helperMethods";
 
 const { Title } = Typography;
 
@@ -33,7 +34,7 @@ const CreateGroup = () => {
 
   const { currentUser, setCurrentPage } = useAppContext();
   const { createGroup } = useGroups(currentUser?.email); // Use email instead of uid
-
+  console.log(currentUser);
   const validateEmail = (email) => {
     if (!email) return true; // Email is optional
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,8 +45,10 @@ const CreateGroup = () => {
     return "user_" + Math.random().toString(36).substr(2, 9);
   };
 
-  const handleAddUser = () => {
-    userForm.validateFields().then((values) => {
+  const handleAddUser = async () => {
+    try {
+      // First validate the form fields
+      const values = await userForm.validateFields();
       const { name, email } = values;
 
       // Validate email if provided
@@ -55,7 +58,7 @@ const CreateGroup = () => {
       }
 
       // Check if user already exists (by name or email)
-      const userExists = members.some(
+      let userExists = members.some(
         (member) =>
           member.name.toLowerCase() === name.toLowerCase() ||
           (email &&
@@ -63,16 +66,37 @@ const CreateGroup = () => {
             member.email.toLowerCase() === email.toLowerCase())
       );
 
+      console.log("userExists ", userExists);
       if (userExists) {
         message.error("User with this name or email already exists");
+        sendNotification(
+          "error",
+          "User with this name or email already exists"
+        );
+        return;
+      }
+
+      // Check if conflicting with current user
+      if (
+        email === currentUser?.email ||
+        name.toLowerCase() === currentUser?.displayName?.toLowerCase()
+      ) {
+        message.error(
+          "User with this name or email conflicts with your name/email"
+        );
+        sendNotification(
+          "error",
+          "User with this name or email conflicts with your name/email"
+        );
+
         return;
       }
 
       const isGoogleUser = (email && email.includes("@gmail.com")) ?? false;
 
       const newMember = {
-        id: Date.now().toString(), // Temporary ID for UI
-        user_id: isGoogleUser ? email.trim() : generateRandomId(), // Use email for Google users, random ID for others
+        id: Date.now().toString(),
+        user_id: isGoogleUser ? email.trim() : generateRandomId(),
         name: name.trim(),
         email: email?.trim() || null,
         is_google_email: isGoogleUser,
@@ -82,7 +106,11 @@ const CreateGroup = () => {
       userForm.resetFields();
       setIsModalVisible(false);
       message.success(`${name} added to the group`);
-    });
+    } catch (errorInfo) {
+      // This handles form validation errors
+      console.log("Form validation failed:", errorInfo);
+      // The form will automatically show field-level validation errors
+    }
   };
 
   console.log("members ", members);
