@@ -33,6 +33,8 @@ const TransactionsTab = () => {
   );
   const [editingExpense, setEditingExpense] = useState(null);
   const [selectedExpense, setSelectedExpense] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteExpenseId, setDeleteExpenseId] = useState(null);
   const [form] = Form.useForm();
 
   const handleEdit = (expense) => {
@@ -56,22 +58,33 @@ const TransactionsTab = () => {
   };
 
   const handleDelete = (expenseId) => {
-    Modal.confirm({
-      title: "Delete Expense",
-      content:
-        "Are you sure you want to delete this expense? This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          await deleteExpense(expenseId);
-          setSelectedExpense(null);
-        } catch (error) {
-          console.error("Error deleting expense:", error);
-        }
-      },
-    });
+    console.log("del called");
+    setDeleteExpenseId(expenseId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      console.log("Deleting expense:", deleteExpenseId);
+      await deleteExpense(deleteExpenseId);
+      setSelectedExpense(null);
+      setShowDeleteModal(false);
+      setDeleteExpenseId(null);
+      console.log("Expense deleted successfully");
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeleteExpenseId(null);
+    console.log("Delete cancelled");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingExpense(null);
+    form.resetFields();
   };
 
   // Group expenses by date
@@ -208,115 +221,212 @@ const TransactionsTab = () => {
       calculateAmounts(selectedExpense);
 
     return (
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center mb-2 md:mb-6 p-1 md:p-4 border-b">
-          <Button
-            type="text"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => setSelectedExpense(null)}
-            className="mr-3"
-          />
-          <Title level={4} className="m-0">
-            Transaction Details
-          </Title>
-        </div>
-
-        {/* Main Details */}
-        <div className="p-2 md:p-6">
-          <div className="text-center mb-2 md:mb-8">
-            <div className="text-3xl md:text-6xl mb-4">
-              {getExpenseIcon(selectedExpense.description)}
-            </div>
-            <Title level={2} className="mb-0.5 md:mb-2 !text-xl md:text-xl">
-              {selectedExpense.description}
+      <>
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center mb-2 md:mb-6 p-1 md:p-4 border-b">
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => setSelectedExpense(null)}
+              className="mr-3"
+            />
+            <Title level={4} className="m-0">
+              Transaction Details
             </Title>
-            <Text className="text-md md:text-2xl text-green-600 font-semibold">
-              ₹{selectedExpense.amount?.toFixed(2)}
-            </Text>
           </div>
 
-          {/* Paid By */}
-          <Card className="mb-2 md:mb-4" title="Paid By">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar icon={<UserOutlined />} />
-                <Text strong>{getMemberName(selectedExpense.paidBy)}</Text>
+          {/* Main Details */}
+          <div className="p-2 md:p-6">
+            <div className="text-center mb-2 md:mb-8">
+              <div className="text-3xl md:text-6xl mb-4">
+                {getExpenseIcon(selectedExpense.description)}
               </div>
-              <Text className="text-lg">
+              <Title level={2} className="mb-0.5 md:mb-2 !text-xl md:text-xl">
+                {selectedExpense.description}
+              </Title>
+              <Text className="text-md md:text-2xl text-green-600 font-semibold">
                 ₹{selectedExpense.amount?.toFixed(2)}
               </Text>
             </div>
-          </Card>
 
-          {/* Split Details */}
-          <Card title="Split Between">
-            <div className="space-y-3">
-              {selectedExpense.sharedBy?.map((person) => (
-                <div key={person} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar icon={<UserOutlined />} />
-                    <Text strong>
-                      {person === currentUser?.email
-                        ? "You"
-                        : getMemberName(person)}
-                    </Text>
-                  </div>
-                  <div className="text-right">
-                    <Text className="text-lg">₹{shareAmount.toFixed(2)}</Text>
-                    {person === currentUser?.email && youBorrowed > 0 && (
-                      <div className="text-sm text-red-500">you borrowed</div>
-                    )}
-                    {person === currentUser?.email && youLent > 0 && (
-                      <div className="text-sm text-green-500">you lent</div>
-                    )}
-                  </div>
+            {/* Paid By */}
+            <Card className="mb-2 md:mb-4" title="Paid By">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar icon={<UserOutlined />} />
+                  <Text strong>{getMemberName(selectedExpense.paidBy)}</Text>
                 </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Your Summary */}
-          {(youLent > 0 || youBorrowed > 0) && (
-            <Card className="mt-4 bg-blue-50">
-              <div className="text-center">
-                <Text className="text-lg">Your Balance</Text>
-                <div className="text-2xl font-semibold mt-2">
-                  {youLent > 0 && (
-                    <Text className="text-green-600">
-                      +₹{youLent.toFixed(2)} (you lent)
-                    </Text>
-                  )}
-                  {youBorrowed > 0 && (
-                    <Text className="text-red-600">
-                      -₹{youBorrowed.toFixed(2)} (you borrowed)
-                    </Text>
-                  )}
-                </div>
+                <Text className="text-lg">
+                  ₹{selectedExpense.amount?.toFixed(2)}
+                </Text>
               </div>
             </Card>
-          )}
 
-          {/* Actions */}
-          <div className="flex justify-center space-x-4 mt-8">
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(selectedExpense)}
-              size="large"
-            >
-              Edit
-            </Button>
-            <Button
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() => handleDelete(selectedExpense.id)}
-              size="large"
-            >
-              Delete
-            </Button>
+            {/* Split Details */}
+            <Card title="Split Between">
+              <div className="space-y-3">
+                {selectedExpense.sharedBy?.map((person) => (
+                  <div
+                    key={person}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Avatar icon={<UserOutlined />} />
+                      <Text strong>
+                        {person === currentUser?.email
+                          ? "You"
+                          : getMemberName(person)}
+                      </Text>
+                    </div>
+                    <div className="text-right">
+                      <Text className="text-lg">₹{shareAmount.toFixed(2)}</Text>
+                      {person === currentUser?.email && youBorrowed > 0 && (
+                        <div className="text-sm text-red-500">you borrowed</div>
+                      )}
+                      {person === currentUser?.email && youLent > 0 && (
+                        <div className="text-sm text-green-500">you lent</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Your Summary */}
+            {(youLent > 0 || youBorrowed > 0) && (
+              <Card className="mt-4 bg-blue-50">
+                <div className="text-center">
+                  <Text className="text-lg">Your Balance</Text>
+                  <div className="text-2xl font-semibold mt-2">
+                    {youLent > 0 && (
+                      <Text className="text-green-600">
+                        +₹{youLent.toFixed(2)} (you lent)
+                      </Text>
+                    )}
+                    {youBorrowed > 0 && (
+                      <Text className="text-red-600">
+                        -₹{youBorrowed.toFixed(2)} (you borrowed)
+                      </Text>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-center space-x-4 mt-8">
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(selectedExpense)}
+                size="large"
+              >
+                Edit
+              </Button>
+              <Button
+                icon={<DeleteOutlined />}
+                danger
+                onClick={() => handleDelete(selectedExpense.id)}
+                size="large"
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Edit Expense Modal - Detail View */}
+        <Modal
+          title="Edit Expense"
+          open={!!editingExpense}
+          onOk={() => form.submit()}
+          onCancel={handleCancelEdit}
+          width={600}
+          okText="Save Changes"
+          zIndex={9999}
+          centered
+          destroyOnClose={true}
+          getContainer={() => document.body}
+          maskClosable={false}
+        >
+          <Form form={form} layout="vertical" onFinish={handleSaveEdit}>
+            <Form.Item
+              name="description"
+              label="Description"
+              rules={[{ required: true, message: "Please enter description" }]}
+            >
+              <Input placeholder="What was this expense for?" />
+            </Form.Item>
+
+            <Form.Item
+              name="amount"
+              label="Amount"
+              rules={[{ required: true, message: "Please enter amount" }]}
+            >
+              <InputNumber
+                className="w-full"
+                min={0}
+                placeholder="0.00"
+                addonBefore="₹"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="paidBy"
+              label="Paid By"
+              rules={[{ required: true, message: "Please select who paid" }]}
+            >
+              <Select placeholder="Who paid for this?">
+                {selectedGroup?.members?.map((member) => (
+                  <Option key={member.user_id} value={member.user_id}>
+                    {member.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="sharedBy"
+              label="Shared By"
+              rules={[
+                {
+                  required: true,
+                  message: "Please select who shares this expense",
+                },
+              ]}
+            >
+              <Select mode="multiple" placeholder="Who should split this?">
+                {selectedGroup?.members?.map((member) => (
+                  <Option key={member.user_id} value={member.user_id}>
+                    {member.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Delete Confirmation Modal - Detail View */}
+        <Modal
+          title="Delete Expense"
+          open={showDeleteModal}
+          onOk={confirmDelete}
+          onCancel={cancelDelete}
+          okText="Delete"
+          okType="danger"
+          cancelText="Cancel"
+          zIndex={9999}
+          centered
+          destroyOnClose
+          getContainer={() => document.body}
+          maskClosable={false}
+        >
+          <p>
+            Are you sure you want to delete this expense? This action cannot be
+            undone.
+          </p>
+        </Modal>
+      </>
     );
   }
 
@@ -421,17 +531,19 @@ const TransactionsTab = () => {
         </div>
       ))}
 
-      {/* Edit Expense Modal */}
+      {/* Edit Expense Modal for main list view */}
       <Modal
         title="Edit Expense"
         open={!!editingExpense}
         onOk={() => form.submit()}
-        onCancel={() => {
-          setEditingExpense(null);
-          form.resetFields();
-        }}
+        onCancel={handleCancelEdit}
         width={600}
         okText="Save Changes"
+        zIndex={9999}
+        centered
+        destroyOnClose={true}
+        getContainer={() => document.body}
+        maskClosable={false}
       >
         <Form form={form} layout="vertical" onFinish={handleSaveEdit}>
           <Form.Item
@@ -488,6 +600,27 @@ const TransactionsTab = () => {
             </Select>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Delete Confirmation Modal for main list view */}
+      <Modal
+        title="Delete Expense"
+        open={showDeleteModal}
+        onOk={confirmDelete}
+        onCancel={cancelDelete}
+        okText="Delete"
+        okType="danger"
+        cancelText="Cancel"
+        zIndex={9999}
+        centered
+        destroyOnClose
+        getContainer={() => document.body}
+        maskClosable={false}
+      >
+        <p>
+          Are you sure you want to delete this expense? This action cannot be
+          undone.
+        </p>
       </Modal>
     </div>
   );

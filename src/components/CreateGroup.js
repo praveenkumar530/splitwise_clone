@@ -66,7 +66,6 @@ const CreateGroup = () => {
             member.email.toLowerCase() === email.toLowerCase())
       );
 
-      console.log("userExists ", userExists);
       if (userExists) {
         message.error("User with this name or email already exists");
         sendNotification(
